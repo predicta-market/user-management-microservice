@@ -1,34 +1,31 @@
 import { Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 
-import {config} from '../server-config';
+import { config } from '../server-config';
 import Logger from '../logger';
 
-export class Database{
-    private db: string;
-    private user: string;
-    private password: string;
-    private host: string;
-    private port: number;
+export class Database {
+    // Singleton instance
+    private static instance: Database; 
     private database: Sequelize;
-    private dbDialect: typeof PostgresDialect;
 
-    constructor(){
-        this.db = config.database.name;
-        this.user = config.database.user;
-        this.password = config.database.password;
-        this.host = config.database.host;
-        this.port = config.database.port;
-        this.dbDialect = PostgresDialect
+    private constructor() {
+        const db = config.database.name;
+        const user = config.database.user;
+        const password = config.database.password;
+        const host = config.database.host;
+        const port = config.database.port;
+        const dbDialect = PostgresDialect;
+
         this.database = new Sequelize({
-            host: this.host,
-            dialect: this.dbDialect,
-            database: this.db,
-            user: this.user,
-            password: this.password,
-            port: this.port,
+            host,
+            dialect: dbDialect,
+            database: db,
+            user: user,
+            password,
+            port,
             ssl: true,
-        })
+        });
 
         this.database.authenticate()
             .then(() => {
@@ -41,9 +38,17 @@ export class Database{
         this.database.sync({
             // Using 'force' will drop any table defined in the models and create them again.
             // force: true
-        })
+        });
     }
-    get getDatabase() : Sequelize {
+
+    public static getInstance(): Database {
+        if (!Database.instance) {
+            Database.instance = new Database();
+        }
+        return Database.instance;
+    }
+
+    public getDatabase(): Sequelize {
         return this.database;
     }
 }
