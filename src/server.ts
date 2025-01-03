@@ -1,10 +1,11 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
-import {StatusCodes} from 'http-status-codes';
 import {config} from './config';
+import router from './route';
 
 class Server{
     private static app: Express;
     private static port:number;
+    static createUserWalletAndTransaction: any;
     
     // Initialize the server
     public static initialize(): void {
@@ -22,12 +23,13 @@ class Server{
     private static configureMiddlewares(): void{
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: false }));
+        this.app.use('/api',router);
     }
 
     // Start the server
     private static start(): void {
-        this.app.listen(this.port, () => {
-        console.info(`Server started at port ${this.port}.`);
+        this.app.listen(this.port, async () => {
+            console.info(`Server started at port ${this.port}.`);
         });
     }
 }
