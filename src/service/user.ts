@@ -1,93 +1,69 @@
-import {StatusCodes} from 'http-status-codes'
-import {passwordUtility,tokenUtility,omit} from '../helper';
-import { Request, Response, NextFunction } from 'express';
+import { ValidationError } from '@sequelize/core';
+import {UnauthorizedError,NotFoundError,BadRequestError,ConflictError,InternalServerError, GenericApiError} from '../common/error';
+import { passwordUtility,tokenUtility } from '../helper';
+import { IUserAttributes, IUserCreationAttributes, User } from '../model';
+import Logger from '../config/logger';
+import UserRepository from '../repository/auth';
 
 
-export async function signup(req: Request, res: Response, next: NextFunction) {
-    const { username, password } = req.body;
+class AuthService{
+    private userRepository:UserRepository
+    constructor(){
+        this.userRepository=new UserRepository();
+    }
+    async register(userDetails:IUserCreationAttributes):Promise<IUserAttributes>{
+        try{
+            userDetails.password = passwordUtility.hash(userDetails.password);            
+            const user = await this.userRepository.createUser(userDetails);
+            
+            return user;
 
-    const hashedPassword = await passwordUtility.hash(password);
-
-    // const newUser = await repo.createUser({
-    //     username: username,
-    //     password: hashedPassword,
-    // });
-
-    const [accessToken, refreshToken] = tokenUtility.generateTokens(username);
-
-    if(!accessToken || !refreshToken){
-        throw new Error('Failed to generate user tokens.');
+        }catch(error:any){
+            if(error instanceof ValidationError) {
+                throw new BadRequestError(`Validation failed: ${error.errors.map(e => e.message).join(', ')}`);
+            }
+            if(error.name === 'SequelizeUniqueConstraintError'){
+                throw new ConflictError('user with the given email or phone number already exists.');
+            }
+            Logger.error('Unexpected Error:', error);
+            throw new InternalServerError();
+        }
     }
 
-    // save refresh token to redis
-    await tokenUtility.saveRefreshToken(username, refreshToken);
+    async signin(userDetails:IUserAttributes){
+        try {
+            
+            const user = await User.findOne({
+                where: {
+                    email:userDetails.email
+                },
+            });
+            if(!user || !user.password) {
+                throw new NotFoundError('user', 'email', userDetails.email);
+            }
+            const authorized = passwordUtility.matches(userDetails.password,user.password);
+            if(!authorized){
+                throw new UnauthorizedError();
+            }
 
-    console.info('User created successfully.');
+            const [accessToken, refreshToken] = tokenUtility.generateTokens({
+                    id:user.id,
+                    email:user.email
+            });
 
-    return res.status(StatusCodes.CREATED).json({
-        status: 'success',
-        message: 'Successfully created new user.',
-        code: StatusCodes.CREATED,
-        data: {
-            user: omit(newUser, ['password', 'createdAt']),
-            accessToken,
-            refreshToken,
-        },
-    });
-}
+            return [accessToken, refreshToken];
 
-
-export async function signin(req: Request, res: Response, next: NextFunction) {
-    const { username, password } = req.body;
-
-    // const storedUser = await userRepository.findWithUsername(username);
-
-    if (!storedUser) throw new Error('This user does not exist.');
-
-    const doesPasswordsMatch = passwordUtility.matches(
-        storedUser.password,
-        password
-    );
-
-    if (!doesPasswordsMatch) throw new Error('Passwords mismatch.');
-
-    const cachedRefreshToken = await tokenUtility.retrieveRefreshToken(username);
-    const [accessToken, genRefresh] = tokenUtility.generateTokens(username);
-
-    const refreshToken = cachedRefreshToken ? cachedRefreshToken : genRefresh;
-
-    if (cachedRefreshToken) {
-        console.info(
-            `Refresh token for user: ${username} still exists, reusing.`
-        );
-    } else {
-        tokenUtility.saveRefreshToken(username, refreshToken);
+        }catch(error){
+            if(error instanceof GenericApiError){
+                throw error;
+            }
+            if(error instanceof ValidationError){
+                throw new BadRequestError(`Validation failed: ${error.errors.map(e => e.message).join(', ')}`);
+            }
+            Logger.error('Unexpected Error:', error);
+            throw new InternalServerError('An error occurred during the signin process.');
+        }
     }
-
-    console.info('User signed in successfully.');
-
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: 'Successfully signed in.',
-        code: StatusCodes.OK,
-        data: {
-            user: omit(storedUser, ['password', 'createdAt']),
-            accessToken,
-            refreshToken,
-        },
-    });
 }
 
-export async function refresh(req: Request, res: Response, next: NextFunction) {
-    const { username } = req.body;
-
-    const [accessToken, refreshToken] = tokenUtility.generateTokens(username);
-
-    await tokenUtility.saveRefreshToken(username, refreshToken);
-
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: 'Generated new tokens pair.',
-        data: { accessToken, refreshToken },
-    });
-}
+export {AuthService};

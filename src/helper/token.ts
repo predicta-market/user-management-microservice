@@ -1,4 +1,4 @@
-import { config,redis } from '../config';
+import { config } from '../config';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 
@@ -6,7 +6,7 @@ class TokenUtility{
     private readonly accessKey: string;
     private readonly refreshKey: string;
     private readonly accessKeyExpiry: string;
-    private readonly redisClient = redis;
+    // private readonly redisClient = redis;
 
     constructor(){
         this.accessKey = config.tokens.accessKey;
@@ -20,16 +20,14 @@ class TokenUtility{
         }
     }
 
-    public generateTokens(username: string){
-        const payload = { username };
-
+    public generateTokens(payload: {}){
         const accessToken = jwt.sign(payload, this.accessKey, {
             expiresIn: this.accessKeyExpiry,
         });
 
         const refreshToken = crypto
             .createHash('sha256')
-            .update(`${this.refreshKey}@${username}:${Date.now()}`)
+            .update(`${this.refreshKey}@${payload}:${Date.now()}`)
             .digest('base64url');
 
         return [accessToken, refreshToken];
@@ -43,23 +41,23 @@ class TokenUtility{
         }
     }
 
-    public async retrieveRefreshToken(username: string): Promise<string | null> {
-        try{
-            return await this.redisClient.getKey(username);
-        }catch(err){
-            console.error('Error retrieving refresh token from Redis:', err);
-            return null;
-        }
-    }
+    // public async retrieveRefreshToken(username: string): Promise<string | null> {
+    //     try{
+    //         return await this.redisClient.getKey(username);
+    //     }catch(err){
+    //         console.error('Error retrieving refresh token from Redis:', err);
+    //         return null;
+    //     }
+    // }
 
-    public async saveRefreshToken(username: string, token: string): Promise<void> {
-        try{
-            await this.redisClient.setKeyWithExpiration(username, token);
-        }catch(err){
-            console.error('Error saving refresh token to Redis:', err);
-            throw new Error('Failed to save refresh token.');
-        }
-    }
+    // public async saveRefreshToken(username: string, token: string): Promise<void> {
+    //     try{
+    //         await this.redisClient.setKeyWithExpiration(username, token);
+    //     }catch(err){
+    //         console.error('Error saving refresh token to Redis:', err);
+    //         throw new Error('Failed to save refresh token.');
+    //     }
+    // }
 }
 
 const tokenUtility = new TokenUtility();

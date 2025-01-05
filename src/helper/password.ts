@@ -8,18 +8,18 @@ class PasswordUtility{
         this.saltRounds = config.password.saltRounds;
     }
 
-    public async hash(plain: string): Promise<string> {
+    public hash(plain: string): string{
         try{
-            return await bcrypt.hash(plain, this.saltRounds);
+            return bcrypt.hashSync(plain, this.saltRounds);
         }catch(error){
             console.error('Error hashing password:', error);
             throw new Error('Failed to hash password.');
         }
     }
 
-    public async matches(plain: string, hash: string): Promise<boolean> {
+    public matches(plain: string, hash: string): boolean {
         try{
-            return await bcrypt.compare(plain, hash);
+            return bcrypt.compareSync(plain, hash);
         }catch(error){
             console.error('Error comparing passwords:', error);
             throw new Error('Failed to compare passwords.');

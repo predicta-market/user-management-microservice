@@ -38,6 +38,7 @@ export class Database {
         this.database.sync({
             // Using 'force' will drop any table defined in the models and create them again.
             // force: true
+            alter:true
         });
     }
 
