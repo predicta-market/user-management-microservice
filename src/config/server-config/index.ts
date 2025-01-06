@@ -19,7 +19,7 @@ const REDIS_DEFAULT_TTL = parseInt(process.env.REDIS_DEFAULT_TTL || '172800', 10
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || '10', 10);
 const ACCESS_KEY = (process.env.ACCESS_KEY === undefined) ? 'snapdb_dev' : process.env.ACCESS_KEY;
 const REFRESH_KEY = (process.env.REFRESH_KEY === undefined) ? 'snapdb_dev' : process.env.REFRESH_KEY;
-const ACCESS_TOKEN_EXPIRY = (process.env.ACCESS_TOKEN_EXPIRY === undefined) ? '1h' : process.env.ACCESS_TOKEN_EXPIRY; // DEFAULT: 1 hour
+const ACCESS_TOKEN_EXPIRY = (process.env.ACCESS_TOKEN_EXPIRY === undefined) ? '10h' : process.env.ACCESS_TOKEN_EXPIRY; // DEFAULT: 10 hour
 
 export const config = Object.freeze({
     server:{

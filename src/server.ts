@@ -7,6 +7,7 @@ class Server{
     private static port:number;
     static createUserWalletAndTransaction: any;
     
+    
     // Initialize the server
     public static initialize(): void {
         this.port = config.server.port;

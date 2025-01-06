@@ -50,7 +50,7 @@ class AuthService{
                     email:user.email
             });
 
-            return [accessToken, refreshToken];
+            return [accessToken, refreshToken,user.email];
 
         }catch(error){
             if(error instanceof GenericApiError){
