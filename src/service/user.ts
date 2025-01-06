@@ -25,7 +25,6 @@ class AuthService{
             if(error.name === 'SequelizeUniqueConstraintError'){
                 throw new ConflictError('user with the given email or phone number already exists.');
             }
-            Logger.error('Unexpected Error:', error);
             throw new InternalServerError();
         }
     }

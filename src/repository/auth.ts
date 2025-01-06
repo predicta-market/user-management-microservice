@@ -7,7 +7,7 @@ class UserRepository{
             const user = await User.create(data);
             return user.toJSON();
         }catch(err){
-            console.log(err);
+            // console.log(err);
             throw err;
         }
     }
